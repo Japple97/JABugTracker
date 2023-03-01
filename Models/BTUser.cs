@@ -22,12 +22,14 @@ namespace JABugTracker.Models
             get { return $"{FirstName} {LastName}"; }
         }
 
+        //Image Properties
         [NotMapped]
         public IFormFile? ImageFile { get; set; }
 
         public byte[]? ImageData { get; set; }
 
         public string? ImageType { get; set; }
+        //
 
         //FK
         [Display(Name = "Company")]
