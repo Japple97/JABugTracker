@@ -291,6 +291,7 @@ namespace JABugTracker.Data
                 throw;
             }
         }
+
         public static async Task SeedDefaultTicketTypesAsync(ApplicationDbContext context)
         {
             try
@@ -316,6 +317,7 @@ namespace JABugTracker.Data
                 throw;
             }
         }
+
         public static async Task SeedDefaultTicketStatusesAsync(ApplicationDbContext context)
         {
             try
@@ -339,6 +341,7 @@ namespace JABugTracker.Data
                 throw;
             }
         }
+
         public static async Task SeedDefaultTicketPrioritiesAsync(ApplicationDbContext context)
         {
             try
@@ -363,7 +366,6 @@ namespace JABugTracker.Data
             }
         }
 
-
         public static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager)
         {
             //Seed Roles
@@ -373,6 +375,7 @@ namespace JABugTracker.Data
             await roleManager.CreateAsync(new IdentityRole(nameof(BTRoles.Submitter)));
             await roleManager.CreateAsync(new IdentityRole(nameof(BTRoles.DemoUser)));
         }
+
         public static async Task SeedDefaultCompaniesAsync(ApplicationDbContext context)
         {
             try
@@ -403,6 +406,7 @@ namespace JABugTracker.Data
                 throw;
             }
         }
+
         public static async Task SeedDefaultUsersAsync(UserManager<BTUser> userManager)
         {
             //Seed Default Admin User
@@ -738,6 +742,7 @@ namespace JABugTracker.Data
                 throw;
             }
         }
+
         public static async Task SeedDemoUsersAsync(UserManager<BTUser> userManager)
         {
             //Seed Demo Admin User
@@ -886,6 +891,7 @@ namespace JABugTracker.Data
                 throw;
             }
         }
+
         public static async Task SeedDefaultProjectPrioritiesAsync(ApplicationDbContext context)
         {
             try
@@ -909,10 +915,6 @@ namespace JABugTracker.Data
                 throw;
             }
         }
-
-
-
-
 
     }
 }
