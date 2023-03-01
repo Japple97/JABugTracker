@@ -1,7 +1,10 @@
-﻿namespace JABugTracker.Models.Enums;
-
-public enum BTNotificationTypes
+﻿namespace JABugTracker.Models.Enums
 {
-    Project,
-    Ticket
+
+    public enum BTNotificationTypes
+    {
+        Project,
+        Ticket
+    }
+
 }

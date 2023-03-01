@@ -1,9 +1,12 @@
-﻿namespace JABugTracker.Models.Enums;
-
-public enum BTTicketPriorities
+﻿namespace JABugTracker.Models.Enums
 {
-    Low,
-    Medium,
-    High,
-    Urgent
+    public enum BTTicketPriorities
+    {
+        Low,
+        Medium,
+        High,
+        Urgent
+    }
+
 }
+
