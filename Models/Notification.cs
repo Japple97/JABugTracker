@@ -23,9 +23,11 @@ namespace JABugTracker.Models
         public virtual NotificationType? NotificationType { get; set; }
         public int NotificationTypeId { get; set; }
 
+        [Required]
         public string? SenderId { get; set; }
         public virtual BTUser? Sender { get; set; }
 
+        [Required]
         public string? RecipientId { get; set; }
         public virtual BTUser? Recipient { get; set; }
 

@@ -42,7 +42,7 @@ namespace JABugTracker.Models
 
         public virtual Project? Project { get; set; }
 
-
+        [Required]
         public string? InvitorId { get; set; }
 
         public virtual BTUser? Invitor { get; set; }
