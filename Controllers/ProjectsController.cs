@@ -8,6 +8,9 @@ using Microsoft.EntityFrameworkCore;
 using JABugTracker.Data;
 using JABugTracker.Models;
 using Microsoft.AspNetCore.Identity;
+using JABugTracker.Services;
+using JABugTracker.Services.Interfaces;
+using Microsoft.Build.Execution;
 
 namespace JABugTracker.Controllers
 {
@@ -15,11 +18,13 @@ namespace JABugTracker.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<BTUser> _userManager;
+        private readonly IBTFileService _btFileService;
 
-        public ProjectsController(ApplicationDbContext context, UserManager<BTUser> userManager)
+        public ProjectsController(ApplicationDbContext context, UserManager<BTUser> userManager, IBTFileService btFileService)
         {
             _context = context;
             _userManager = userManager;
+            _btFileService = btFileService;
 
         }
 
@@ -65,7 +70,7 @@ namespace JABugTracker.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,Description,Created,StartDate,EndDate,ImageFileData,ImageFileType,Archived,CompanyId,ProjectPriorityId")] Project project)
+        public async Task<IActionResult> Create([Bind("Id,Name,Description,Created,StartDate,EndDate,ImageFormFile,Archived,CompanyId,ProjectPriorityId")] Project project)
         {
             if (ModelState.IsValid)
             {
@@ -73,6 +78,13 @@ namespace JABugTracker.Controllers
                 project.Created = DataUtility.GetPostGresDate(DateTime.UtcNow);
                 project.StartDate = DataUtility.GetPostGresDate(project.StartDate);
                 project.EndDate = DataUtility.GetPostGresDate(project.EndDate);
+
+                //Image
+                if (project.ImageFormFile != null)
+                {
+                    project.ImageFileData = await _btFileService.ConvertFileToByteArrayAsync(project.ImageFormFile);
+                    project.ImageFileType = project.ImageFormFile.ContentType;
+                }
 
                 _context.Add(project);
                 await _context.SaveChangesAsync();
@@ -121,6 +133,12 @@ namespace JABugTracker.Controllers
                     project.Created = DateTime.SpecifyKind(project.Created, DateTimeKind.Utc);
                     project.StartDate = DataUtility.GetPostGresDate(project.StartDate);
                     project.EndDate = DataUtility.GetPostGresDate(project.EndDate);
+                    //Image 
+                    if(project.ImageFormFile != null)
+                    {
+                        project.ImageFileData = await _btFileService.ConvertFileToByteArrayAsync(project.ImageFormFile);
+                        project.ImageFileType = project.ImageFormFile.ContentType;
+                    }
 
 
 
