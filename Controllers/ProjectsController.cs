@@ -7,21 +7,27 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using JABugTracker.Data;
 using JABugTracker.Models;
+using Microsoft.AspNetCore.Identity;
 
 namespace JABugTracker.Controllers
 {
     public class ProjectsController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly UserManager<BTUser> _userManager;
 
-        public ProjectsController(ApplicationDbContext context)
+        public ProjectsController(ApplicationDbContext context, UserManager<BTUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
+
         }
 
         // GET: Projects
         public async Task<IActionResult> Index()
         {
+            IEnumerable<Project> projects = await _context.Projects.Where(t => t.Archived == false).ToListAsync();
+
             var applicationDbContext = _context.Projects.Include(p => p.Company).Include(p => p.ProjectPriority);
             return View(await applicationDbContext.ToListAsync());
         }
@@ -63,6 +69,11 @@ namespace JABugTracker.Controllers
         {
             if (ModelState.IsValid)
             {
+                //Format Date
+                project.Created = DataUtility.GetPostGresDate(DateTime.UtcNow);
+                project.StartDate = DataUtility.GetPostGresDate(project.StartDate);
+                project.EndDate = DataUtility.GetPostGresDate(project.EndDate);
+
                 _context.Add(project);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
@@ -95,7 +106,7 @@ namespace JABugTracker.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Description,Created,StartDate,EndDate,ImageFileData,ImageFileType,Archived,CompanyId,ProjectPriorityId")] Project project)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Description,Created,StartDate,EndDate,ImageFormFile,Archived,CompanyId,ProjectPriorityId")] Project project)
         {
             if (id != project.Id)
             {
@@ -106,6 +117,13 @@ namespace JABugTracker.Controllers
             {
                 try
                 {
+                    // Reformat Dates
+                    project.Created = DateTime.SpecifyKind(project.Created, DateTimeKind.Utc);
+                    project.StartDate = DataUtility.GetPostGresDate(project.StartDate);
+                    project.EndDate = DataUtility.GetPostGresDate(project.EndDate);
+
+
+
                     _context.Update(project);
                     await _context.SaveChangesAsync();
                 }
@@ -159,6 +177,7 @@ namespace JABugTracker.Controllers
             var project = await _context.Projects.FindAsync(id);
             if (project != null)
             {
+                project.Archived = true;
                 _context.Projects.Remove(project);
             }
             
