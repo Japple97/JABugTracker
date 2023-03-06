@@ -41,11 +41,10 @@ namespace JABugTracker.Services
         {
             try
             {
-                MemoryStream memoryStream = new();
+                using MemoryStream memoryStream = new MemoryStream();
                 await file.CopyToAsync(memoryStream);
                 byte[] byteFile = memoryStream.ToArray();
                 memoryStream.Close();
-                memoryStream.Dispose();
                 return byteFile;
             }
             catch (Exception)

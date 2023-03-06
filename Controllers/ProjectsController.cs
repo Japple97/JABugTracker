@@ -11,9 +11,11 @@ using Microsoft.AspNetCore.Identity;
 using JABugTracker.Services;
 using JABugTracker.Services.Interfaces;
 using Microsoft.Build.Execution;
+using Microsoft.AspNetCore.Authorization;
 
 namespace JABugTracker.Controllers
 {
+    [Authorize]
     public class ProjectsController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -29,9 +31,9 @@ namespace JABugTracker.Controllers
         }
 
         // GET: Projects
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(BTUser user)
         {
-            IEnumerable<Project> projects = await _context.Projects.Where(t => t.Archived == false).ToListAsync();
+            IEnumerable<Project> projects = await _context.Projects.Where(t => t.Archived == false).Where(p=>p.CompanyId==user.CompanyId).ToListAsync();
 
             var applicationDbContext = _context.Projects.Include(p => p.Company).Include(p => p.ProjectPriority);
             return View(await applicationDbContext.ToListAsync());
@@ -108,6 +110,13 @@ namespace JABugTracker.Controllers
             {
                 return NotFound();
             }
+
+            if (project.ImageFormFile != null)
+            {
+                project.ImageFileData = await _btFileService.ConvertFileToByteArrayAsync(project.ImageFormFile);
+                project.ImageFileType = project.ImageFormFile.ContentType;
+            }
+
             ViewData["CompanyId"] = new SelectList(_context.Companies, "Id", "Name", project.CompanyId);
             ViewData["ProjectPriorityId"] = new SelectList(_context.ProjectPriorities, "Id", "Name", project.ProjectPriorityId);
             return View(project);
