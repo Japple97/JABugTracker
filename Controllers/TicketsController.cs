@@ -8,21 +8,28 @@ using Microsoft.EntityFrameworkCore;
 using JABugTracker.Data;
 using JABugTracker.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.CodeAnalysis;
+using JABugTracker.Extensions;
+using JABugTracker.Services.Interfaces;
 
 namespace JABugTracker.Controllers
 {
+    [Authorize]
     public class TicketsController : Controller
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<BTUser> _userManager;
+        private readonly ITicketService _ticketService;
 
-        public TicketsController(ApplicationDbContext context, UserManager<BTUser> userManager)
+        public TicketsController(ApplicationDbContext context, UserManager<BTUser> userManager, ITicketService ticketService)
         {
             _context = context;
             _userManager = userManager;
+            _ticketService = ticketService;
         }
 
-        // GET: Tickets
+        // GET: Tickets---------------------------------------------------------------------------------
         public async Task<IActionResult> Index()
         {
             IEnumerable<Ticket> tickets = await _context.Tickets.Where(t => t.Archived == false).ToListAsync();
@@ -31,7 +38,60 @@ namespace JABugTracker.Controllers
             return View(tickets);
         }
 
-        // GET: Tickets/Details/5
+        //GET: Tickets/MyTickets------------------------------------------------------------------------
+        public async Task<IActionResult> MyTickets(int? projectId)
+        {
+
+            if (projectId == null)
+            {
+                return NotFound();
+            }
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            int companyId = User.Identity!.GetCompanyId();
+
+            var project = await _context.Projects
+                .Include(p => p.Members)
+                .FirstOrDefaultAsync(p => p.Id == projectId && p.CompanyId == companyId);
+
+            if (project == null || !project.Members.Contains(currentUser!))
+            {
+                return NotFound();
+            }
+
+            var role = await _userManager.GetRolesAsync(currentUser);
+            List<Ticket> tickets = new();
+
+            if (role.Contains("Admin") || role.Contains("ProjectManager"))
+            {
+                tickets = await _context.Tickets
+                    .Where(t => t.ProjectId == projectId && t.Archived == false)
+                    .Include(t => t.DeveloperUser)
+                    .Include(t => t.SubmitterUser)
+                    .ToListAsync();
+            }
+            else if (role.Contains("Developer"))
+            {
+                tickets = await _context.Tickets
+                    .Where(t => t.ProjectId == projectId && t.DeveloperUserId == currentUser.Id && t.Archived == false)
+                    .Include(t => t.DeveloperUser)
+                    .Include(t => t.SubmitterUser)
+                    .ToListAsync();
+            }
+            else if (role.Contains("Submitter"))
+            {
+                tickets = await _context.Tickets
+                    .Where(t => t.ProjectId == projectId && t.SubmitterUserId == currentUser.Id && t.Archived == false)
+                    .Include(t => t.DeveloperUser)
+                    .Include(t => t.SubmitterUser)
+                    .ToListAsync();
+            }
+
+            return View(tickets);
+        }
+
+
+        // GET: Tickets/Details/5-----------------------------------------------------------------------
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null || _context.Tickets == null)
@@ -39,14 +99,8 @@ namespace JABugTracker.Controllers
                 return NotFound();
             }
 
-            var ticket = await _context.Tickets
-                .Include(t => t.DeveloperUser)
-                .Include(t => t.Project)
-                .Include(t => t.SubmitterUser)
-                .Include(t => t.TicketPriority)
-                .Include(t => t.TicketStatus)
-                .Include(t => t.TicketType)
-                .FirstOrDefaultAsync(m => m.Id == id);
+            Ticket ticket = await _ticketService.GetTicketByIdAsync(id.Value);
+
             if (ticket == null)
             {
                 return NotFound();
@@ -55,7 +109,36 @@ namespace JABugTracker.Controllers
             return View(ticket);
         }
 
-        // GET: Tickets/Create
+        //POST: Tickets/AddTicketComment----------------------------------------------------------------
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddTicketComment(int? ticketId, string? comment)
+        {
+            try
+            {
+                if (ticketId != null && !string.IsNullOrEmpty(comment))
+                {
+                    TicketComment commentNew = new TicketComment
+                    {
+                        TicketId = ticketId.Value,
+                        Comment = comment,
+                        UserId = _userManager.GetUserId(User),
+                        Created = DataUtility.GetPostGresDate(DateTime.UtcNow)
+                    };
+                    _context.TicketComments.Add(commentNew);
+                    await _context.SaveChangesAsync();
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            
+            return RedirectToAction("Details", "Tickets", new { id = ticketId});
+
+        }
+
+        // GET: Tickets/Create-------------------------------------------------------------------------------
         public IActionResult Create()
         {
             ViewData["DeveloperUserId"] = new SelectList(_context.Set<BTUser>(), "Id", "Id");

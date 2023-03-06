@@ -20,6 +20,8 @@ namespace JABugTracker.Models
 
         public string? FileType { get; set; }
 
+        public string? FileName { get; set; }
+
         // Navigation properties
         public virtual Ticket? Ticket { get; set; }
 

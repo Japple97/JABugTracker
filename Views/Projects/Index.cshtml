@@ -86,3 +86,23 @@
         }
     </tbody>
 </table>
+
+@foreach (var item in Model)
+{
+    <div class="row">
+        <div class="col-lg-12" data-plugin-portlet id="portlet-1">
+            <section class="card card-primary" id="card-1" data-portlet-item>
+                <header class="card-header portlet-handler">
+                    <div class="card-actions">
+                        <a href="#" class="card-action card-action-toggle" data-card-toggle></a>
+                    </div>
+
+                    <h2 class="card-title">@Html.DisplayFor(modelItem => item.Name)</h2>
+                </header>
+                <div class="card-body">
+                    @Html.DisplayFor(modelItem => item.Description)
+                </div>
+            </section>
+        </div>
+    </div>
+}

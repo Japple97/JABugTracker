@@ -12,6 +12,8 @@ using JABugTracker.Services;
 using JABugTracker.Services.Interfaces;
 using Microsoft.Build.Execution;
 using Microsoft.AspNetCore.Authorization;
+using Npgsql.Internal.TypeHandling;
+using JABugTracker.Extensions;
 
 namespace JABugTracker.Controllers
 {
@@ -21,36 +23,53 @@ namespace JABugTracker.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<BTUser> _userManager;
         private readonly IBTFileService _btFileService;
+        private readonly IProjectService _projectService;
 
-        public ProjectsController(ApplicationDbContext context, UserManager<BTUser> userManager, IBTFileService btFileService)
+        public ProjectsController(ApplicationDbContext context, UserManager<BTUser> userManager, IBTFileService btFileService, IProjectService projectService)
         {
             _context = context;
             _userManager = userManager;
             _btFileService = btFileService;
-
+            _projectService = projectService;
         }
 
         // GET: Projects
-        public async Task<IActionResult> Index(BTUser user)
+        public async Task<IActionResult> Index()
         {
-            IEnumerable<Project> projects = await _context.Projects.Where(t => t.Archived == false).Where(p=>p.CompanyId==user.CompanyId).ToListAsync();
-
-            var applicationDbContext = _context.Projects.Include(p => p.Company).Include(p => p.ProjectPriority);
-            return View(await applicationDbContext.ToListAsync());
+            int companyId = User.Identity!.GetCompanyId();
+           
+            IEnumerable<Project> projects = await _context.Projects
+                                                          .Where(p => p.Archived == false && p.CompanyId==companyId)
+                                                          .Include(p=>p.Members)
+                                                          .Include(p=>p.Tickets)
+                                                          .ToListAsync();         
+            return View(projects);
         }
 
-        // GET: Projects/Details/5
-        public async Task<IActionResult> Details(int? id)
+        // GET: Projects/MyProjects---------------------------------------------------------------------------------------
+        public async Task<IActionResult> MyProjects()
         {
-            if (id == null || _context.Projects == null)
+            var currentUser = await _userManager.GetUserAsync(User);
+            int companyId = User.Identity!.GetCompanyId();
+            var projects = await _context.Projects
+                .Where(p => p.CompanyId == companyId && p.Members.Contains(currentUser!) && p.Archived==false)
+                .Include(p=>p.Members)
+                .Include(p=>p.Tickets)
+                .ToListAsync();
+            return View(projects);
+        }
+
+        // GET: Projects/Details/5-----------------------------------------------------------------------------------------
+        public async Task<IActionResult> Details(int? projectId)
+        {
+            if (projectId == null)
             {
                 return NotFound();
             }
+            int companyId = User.Identity!.GetCompanyId();
 
-            var project = await _context.Projects
-                .Include(p => p.Company)
-                .Include(p => p.ProjectPriority)
-                .FirstOrDefaultAsync(m => m.Id == id);
+            Project? project = await _projectService.GetProjectByIdAsync(projectId.Value, companyId);
+            
             if (project == null)
             {
                 return NotFound();
@@ -59,7 +78,7 @@ namespace JABugTracker.Controllers
             return View(project);
         }
 
-        // GET: Projects/Create
+        // GET: Projects/Create----------------------------------------------------------------------------------------------
         public IActionResult Create()
         {
             ViewData["CompanyId"] = new SelectList(_context.Companies, "Id", "Name");

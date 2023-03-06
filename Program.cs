@@ -1,4 +1,5 @@
 using JABugTracker.Data;
+using JABugTracker.Extensions;
 using JABugTracker.Models;
 using JABugTracker.Services;
 using JABugTracker.Services.Interfaces;
@@ -14,9 +15,11 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
 
 builder.Services.AddIdentity<BTUser, IdentityRole>(options => options.SignIn.RequireConfirmedAccount = true)
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddClaimsPrincipalFactory<BTUserClaimsPrincipalFactory>()
     .AddDefaultUI()
-    .AddDefaultTokenProviders()
-    .AddEntityFrameworkStores<ApplicationDbContext>();
+    .AddDefaultTokenProviders();
+    
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
