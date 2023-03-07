@@ -14,6 +14,8 @@ using Microsoft.Build.Execution;
 using Microsoft.AspNetCore.Authorization;
 using Npgsql.Internal.TypeHandling;
 using JABugTracker.Extensions;
+using JABugTracker.Models.ViewModels;
+using JABugTracker.Models.Enums;
 
 namespace JABugTracker.Controllers
 {
@@ -24,13 +26,15 @@ namespace JABugTracker.Controllers
         private readonly UserManager<BTUser> _userManager;
         private readonly IBTFileService _btFileService;
         private readonly IProjectService _projectService;
+        private readonly IBTRoleService _btRoleService;
 
-        public ProjectsController(ApplicationDbContext context, UserManager<BTUser> userManager, IBTFileService btFileService, IProjectService projectService)
+        public ProjectsController(ApplicationDbContext context, UserManager<BTUser> userManager, IBTFileService btFileService, IProjectService projectService, IBTRoleService btRoleService)
         {
             _context = context;
             _userManager = userManager;
             _btFileService = btFileService;
             _projectService = projectService;
+            _btRoleService = btRoleService;
         }
 
         // GET: Projects
@@ -60,15 +64,12 @@ namespace JABugTracker.Controllers
         }
 
         // GET: Projects/Details/5-----------------------------------------------------------------------------------------
-        public async Task<IActionResult> Details(int? projectId)
+        public async Task<IActionResult> Details(int? id)
         {
-            if (projectId == null)
-            {
-                return NotFound();
-            }
+            
             int companyId = User.Identity!.GetCompanyId();
 
-            Project? project = await _projectService.GetProjectByIdAsync(projectId.Value, companyId);
+            Project? project = await _projectService.GetProjectByIdAsync(id, companyId);
             
             if (project == null)
             {
@@ -78,6 +79,59 @@ namespace JABugTracker.Controllers
             return View(project);
         }
 
+
+		// GET: Projects/AssignPM------------------------------------------------------------------------------------------
+		[HttpGet]
+		[Authorize(Roles = "Admin")]
+		public async Task<IActionResult> AssignPM(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+            //Get companyId
+            int companyId = User.Identity!.GetCompanyId();
+
+            IEnumerable<BTUser> projectManagers = await _btRoleService.GetUsersInRoleAsync(nameof(BTRoles.ProjectManager), companyId);
+            BTUser? currentPM = await _projectService.GetProjectManagerAsync(id);
+            AssignPMViewModel viewModel = new()
+            {
+                Project = await _projectService.GetProjectByIdAsync(id, companyId),
+                PMList = new SelectList(projectManagers, "Id", "FullName", currentPM?.Id),
+                PMId = currentPM?.Id,
+            };
+            return View(viewModel);
+
+        }
+
+        // POST: Projects/AssignPM----------------------------------------
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+		[Authorize(Roles = "Admin")]
+		public async Task<IActionResult> AssignPM(AssignPMViewModel viewModel)
+        {
+            if (!string.IsNullOrEmpty(viewModel.PMId))
+            {
+                await _projectService.AddProjectManagerAsync(viewModel.PMId, viewModel.Project?.Id);
+
+                return RedirectToAction("Details", new { id = viewModel.Project?.Id });
+
+            }
+
+            ModelState.AddModelError("PMId", "No Project Manager chosen. Please select a PM.");
+            int companyId = User.Identity!.GetCompanyId();
+
+            IEnumerable<BTUser> projectManagers = await _btRoleService.GetUsersInRoleAsync(nameof(BTRoles.ProjectManager), companyId);
+            BTUser? currentPM = await _projectService.GetProjectManagerAsync(viewModel.Project?.Id);
+            viewModel.Project = await _projectService.GetProjectByIdAsync(viewModel.Project?.Id, companyId);
+            viewModel.PMList = new SelectList(projectManagers, "Id", "FullName", currentPM?.Id);
+            viewModel.PMId = currentPM?.Id;
+
+            return View(viewModel);
+
+        }
+        
+
         // GET: Projects/Create----------------------------------------------------------------------------------------------
         public IActionResult Create()
         {
@@ -86,7 +140,7 @@ namespace JABugTracker.Controllers
             return View();
         }
 
-        // POST: Projects/Create
+        // POST: Projects/Create---------------------------------------
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
@@ -116,7 +170,7 @@ namespace JABugTracker.Controllers
             return View(project);
         }
 
-        // GET: Projects/Edit/5
+        // GET: Projects/Edit/5----------------------------------------------------------------------------------------------------------------------------------
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null || _context.Projects == null)
@@ -141,7 +195,7 @@ namespace JABugTracker.Controllers
             return View(project);
         }
 
-        // POST: Projects/Edit/5
+        // POST: Projects/Edit/5---------------------------------------------------------------------
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
@@ -191,7 +245,7 @@ namespace JABugTracker.Controllers
             return View(project);
         }
 
-        // GET: Projects/Delete/5
+        // GET: Projects/Delete/5--------------------------------------------------------------------------------------------------------------
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null || _context.Projects == null)
@@ -211,7 +265,7 @@ namespace JABugTracker.Controllers
             return View(project);
         }
 
-        // POST: Projects/Delete/5
+        // POST: Projects/Delete/5---------------------------------------------------------------
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
@@ -230,7 +284,7 @@ namespace JABugTracker.Controllers
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
-
+        // --------------------------------------
         private bool ProjectExists(int id)
         {
           return (_context.Projects?.Any(e => e.Id == id)).GetValueOrDefault();

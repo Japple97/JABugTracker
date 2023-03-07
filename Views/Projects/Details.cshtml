@@ -1,4 +1,7 @@
 ﻿@model JABugTracker.Models.Project
+@using JABugTracker.Services.Interfaces
+
+@inject IProjectService _ProjectService
 
 @{
     ViewData["Title"] = "Details";
@@ -15,6 +18,8 @@
                         <div class="body">
                             @* Project Name *@
                             <h5>[Project Name]</h5>
+                            @* Project Manager *@
+                            <h4>@(   (await _ProjectService.GetProjectManagerAsync(Model.Id))?.FullName ?? "Unassigned" )</h4>
                             @* Project Description *@
                             <p>[Project description]</p>
                             <div class="progress-container progress-info m-b-25">

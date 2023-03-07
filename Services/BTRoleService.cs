@@ -16,6 +16,8 @@ namespace JABugTracker.Services
 			_context = context;
 		}
 
+		//CTRL+M+O to minimize all methods
+
 		public async Task<bool> AddUserToRoleAsync(BTUser user, string roleName)
 		{
 			try
