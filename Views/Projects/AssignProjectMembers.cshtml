@@ -1,21 +1,20 @@
-﻿@model AssignPMViewModel
+﻿@model ProjectMembersViewModel
 
 @{
-    ViewData["Title"] = "Assign Project Manager";
+    ViewData["Title"] = "Assign Project Members";
 }
 <div class="d-flex justify-content-center mt-5 flex-column align-items-center">
-    <h3 class="my-5">Assign Project Manager</h3>
+    <h3 class="my-5">Add Project Members</h3>
     <div class="card">
         <div class="card-header">
             <div class="card-title">@Model.Project?.Name</div>
         </div>
         <div class="card-body">
-            <form asp-action="AssignPM" asp-controller="Projects" method="post" class="d-flex flex-column">
+            <form asp-action="AssignProjectMembers" asp-controller="Projects" method="post" class="d-flex flex-column">
                 <input type="hidden" asp-for="Project!.Id" />
-                <select asp-items="Model.PMList" asp-for="PMId" class="form-control">
-                    <option value="">Unassigned</option>
+                <select asp-items="Model.UsersList" asp-for="SelectedMembers" class="form-control" multiple required>                    
                 </select>
-                <span asp-validation-for="PMId" class="text-danger"></span>
+                <span asp-validation-for="SelectedMembers" class="text-danger"></span>
                 <button type="submit" class="btn btn-primary my-3">Save</button>
                 <a asp-action="Details" asp-route-id="@Model.Project?.Id" class="btn btn-secondary">Cancel</a>
             </form>

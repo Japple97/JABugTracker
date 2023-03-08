@@ -27,14 +27,16 @@ namespace JABugTracker.Controllers
         private readonly IBTFileService _btFileService;
         private readonly IProjectService _projectService;
         private readonly IBTRoleService _btRoleService;
+        private readonly IBTCompanyService _companyService;
 
-        public ProjectsController(ApplicationDbContext context, UserManager<BTUser> userManager, IBTFileService btFileService, IProjectService projectService, IBTRoleService btRoleService)
+        public ProjectsController(ApplicationDbContext context, UserManager<BTUser> userManager, IBTFileService btFileService, IProjectService projectService, IBTRoleService btRoleService, IBTCompanyService companyService)
         {
             _context = context;
             _userManager = userManager;
             _btFileService = btFileService;
             _projectService = projectService;
             _btRoleService = btRoleService;
+            _companyService = companyService;
         }
 
         // GET: Projects
@@ -130,7 +132,74 @@ namespace JABugTracker.Controllers
             return View(viewModel);
 
         }
-        
+
+
+        //GET: Projects/AssignProjectMembers----------------------------------------------------------------------------
+        [HttpGet]
+        [Authorize(Roles = "Admin, ProjectManager")]
+        public async Task<IActionResult> AssignProjectMembers(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            int companyId = User.Identity!.GetCompanyId();
+
+            Project project = await _projectService.GetProjectByIdAsync(id, companyId);
+
+            List<BTUser> submitters = await _btRoleService.GetUsersInRoleAsync(nameof(BTRoles.Submitter), companyId);
+            List<BTUser> developers = await _btRoleService.GetUsersInRoleAsync(nameof(BTRoles.Developer), companyId);
+            //Merge the 2 above lists
+            List<BTUser> usersList = submitters.Concat(developers).ToList();
+
+            List<string> currentMembers = project.Members.Select(m => m.Id).ToList();
+
+
+
+            ProjectMembersViewModel viewModel = new()
+            {
+                Project = project,
+                UsersList = new MultiSelectList(usersList, "Id", "FullName", currentMembers)
+            };
+
+            return View(viewModel);
+        }
+
+        //POST: Projects/AssignProjectMembers-------------------------------------------------------------------------
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin, ProjectManager")]
+        public async Task<IActionResult> AssignProjectMembers(ProjectMembersViewModel viewModel)
+        {
+            int companyId = User.Identity!.GetCompanyId();
+
+            if (viewModel.SelectedMembers != null)
+            {
+                //Remove current members
+                await _projectService.RemoveMembersFromProjectAsync(viewModel.Project!.Id, companyId);
+
+                //Add newly selected members
+                await _projectService.AddMembersToProjectAsync(viewModel.SelectedMembers, viewModel.Project!.Id, companyId);
+
+                return RedirectToAction(nameof(Details), new { viewModel.Project!.Id });
+
+            }
+            ModelState.AddModelError("SelectedMembers", "No members were selected. Please select members to add to the project.");
+            //if NOT, reset the form
+            viewModel.Project = await _projectService.GetProjectByIdAsync(viewModel.Project!.Id, companyId);
+            List<string> currentMembers = viewModel.Project.Members.Select(m => m.Id).ToList();
+
+            List<BTUser> submitters = await _btRoleService.GetUsersInRoleAsync(nameof(BTRoles.Submitter), companyId);
+            List<BTUser> developers = await _btRoleService.GetUsersInRoleAsync(nameof(BTRoles.Developer), companyId);
+            //Merge the 2 above lists
+            List<BTUser> usersList = submitters.Concat(developers).ToList();
+            viewModel.UsersList = new MultiSelectList(usersList, "Id", "FullName", currentMembers);
+
+            return View(viewModel);
+
+
+        }
 
         // GET: Projects/Create----------------------------------------------------------------------------------------------
         public IActionResult Create()

@@ -8,8 +8,11 @@ namespace JABugTracker.Services.Interfaces
         //public Task ArchiveProjectAsync(Project project);
         //public Task<List<Project>> GetAllProjectsByCompanyIdAsync(int companyId);
         //public Task<List<Project>> GetArchivedProjectsByCompanyIdAsync(int companyId);
-        //public Task AddMembersToProjectAsync(IEnumerable<string> userIds, int projectId);
 
+
+
+        public Task AddMembersToProjectAsync(IEnumerable<string> userIds, int? projectId, int? companyId);
+        public Task RemoveMembersFromProjectAsync(int? projectId, int? companyId);
 
 
         public Task<bool> AddMemberToProjectAsync(BTUser? member, int? projectId);

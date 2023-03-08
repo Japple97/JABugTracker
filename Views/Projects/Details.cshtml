@@ -75,6 +75,10 @@
 
                                 [Project Members]
                                 @* Logic for avatars *@
+                                @foreach(BTUser member in Model.Members)
+                                {
+                                    <li>@member.FullName</li>
+                                }
                             </ul>
 
                         </div>
