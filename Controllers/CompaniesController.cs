@@ -8,6 +8,11 @@ using Microsoft.EntityFrameworkCore;
 using JABugTracker.Data;
 using JABugTracker.Models;
 using Microsoft.AspNetCore.Authorization;
+using JABugTracker.Models.ViewModels;
+using Microsoft.AspNetCore.Identity;
+using JABugTracker.Services.Interfaces;
+using JABugTracker.Extensions;
+using JABugTracker.Models.Enums;
 
 namespace JABugTracker.Controllers
 {
@@ -15,10 +20,16 @@ namespace JABugTracker.Controllers
     public class CompaniesController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly UserManager<BTUser> _userManager;
+        private readonly IBTRoleService _roleService;
+        private readonly IBTCompanyService _companyService;
 
-        public CompaniesController(ApplicationDbContext context)
+        public CompaniesController(ApplicationDbContext context, UserManager<BTUser> userManager, IBTRoleService roleService, IBTCompanyService companyService)
         {
             _context = context;
+            _userManager = userManager;
+            _roleService = roleService;
+            _companyService = companyService;
         }
 
         // GET: Companies
@@ -29,7 +40,64 @@ namespace JABugTracker.Controllers
                           Problem("Entity set 'ApplicationDbContext.Companies'  is null.");
         }
 
-        // GET: Companies/Details/5
+        //GET: Companies/ManageUserRoles--------------------------------------------------------------------------------------------------
+        [HttpGet]
+        public async Task<IActionResult> ManageUserRoles()
+        {
+            //1- Add an instance of the viewModel as a List (model)
+
+            List<ManageUserRolesViewModel> viewModels = new();
+
+
+            //2- Get companyId
+            int companyId = User.Identity!.GetCompanyId();
+
+            //3-Get all company users
+            List<BTUser> members = await _companyService.GetMembersAsync(companyId);
+            List<IdentityRole> roles = (await _roleService.GetRolesAsync()).ToList();
+
+            foreach (BTUser member in members)
+            {
+                IEnumerable<string> currentRoles = await _roleService.GetUserRolesAsync(member);
+
+                ManageUserRolesViewModel viewModel = new()
+                {
+                    BTUser = member,
+                    Roles = new MultiSelectList(roles, "Name", "Name", currentRoles)
+                };
+                viewModels.Add(viewModel);
+            }
+            return View(viewModels);
+        }
+
+        //POST: Companies/ManageUserRoles-------------------------------------------------------
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ManageUserRoles(ManageUserRolesViewModel viewModel)
+        {
+            //1- Get the company Id
+            int? companyId = User.Identity!.GetCompanyId();
+            //2 - Instantiate the BTUser
+            BTUser? user = await _userManager.FindByIdAsync(viewModel.BTUser!.Id);
+
+
+            //3 - Get the roles for the User
+            List<string> currentRoles = (await _roleService.GetUserRolesAsync(user!)).ToList();
+
+            //4 - Get the selected Role(s) for the user submitted from the form
+            List<string> selectedRoles = viewModel.SelectedRoles!;
+            //5 - Remove the current role(s) and add the new role
+            await _roleService.RemoveUserFromRolesAsync(user!, currentRoles);
+            foreach(string role in selectedRoles)
+            {
+                await _roleService.AddUserToRoleAsync(user!, role);
+            }
+            //6 - Navigate
+            return RedirectToAction("Index", "Home");
+
+        }
+
+        // GET: Companies/Details/5---------------------------------------------------------------------------------
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null || _context.Companies == null)

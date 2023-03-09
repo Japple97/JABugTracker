@@ -1,26 +1,63 @@
 ﻿@using Microsoft.AspNetCore.Identity
 @inject SignInManager<BTUser> SignInManager
 @inject UserManager<BTUser> UserManager
+@using JABugTracker.Models.Enums
+@using JABugTracker.Services.Interfaces
+@using JABugTracker.Services
+@inject IBTRoleService _roleService
+@{
+    BTUser? btUser = await UserManager.GetUserAsync(User);
+}
 
-<ul class="navbar-nav">
+
 @if (SignInManager.IsSignedIn(User))
 {
-    <li class="nav-item">
-        <a  class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Manage/Index" title="Manage">Hello @User.Identity?.Name!</a>
-    </li>
-    <li class="nav-item">
-        <form  class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
-            <button  type="submit" class="nav-link btn btn-link text-dark">Logout</button>
-        </form>
-    </li>
+        <a href="#" data-bs-toggle="dropdown">
+            <figure class="profile-picture">
+                <img src="~/Template/HTML/img/!logged-user.jpg" alt="User Profile" class="rounded-circle" />
+            </figure>
+            <div class="profile-info">
+                <span class="name">@User.Identity?.Name</span>
+                <span class="role">@{await _roleService.GetUserRolesAsync(btUser!);}</span>
+            </div>
+            <i class="fa custom-caret"></i>
+        </a>
+        <div class="dropdown-menu">
+            <ul class="list-unstyled mb-2">
+                <li class="divider"></li>
+                <li>
+                    <a role="menuitem" tabindex="-1" href="pages-user-profile.html"><i class="bx bx-user-circle"></i> My Profile</a>
+                </li>
+                <li>
+                    <a role="menuitem" tabindex="-1" href="#" data-lock-screen="true"><i class="bx bx-lock"></i> Lock Screen</a>
+                </li>
+                <li class="nav-item">
+                    <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("PortoIndex", "Home", new { area = "" })">
+                        <button type="submit" class="nav-link btn btn-link text-dark">Logout</button>
+                    </form>
+                </li>
+                
+            </ul>
+        </div>
 }
 else
 {
-    <li class="nav-item">
-        <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Register">Register</a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Login">Login</a>
-    </li>
+<a data-bs-toggle="dropdown">
+    <div class="profile-info">
+        <span>Login / Register</span>
+    </div>
+    <i class="fa custom-caret"></i>
+</a>
+<div class="dropdown-menu">
+    <ul class="list-unstyled mb-2">
+        <li class="divider"></li>
+        <li>
+            <a role="menuitem" tabindex="-1" asp-area="Identity" asp-page="/Account/Register">Register</a>
+        </li>
+        <li>
+            <a role="menuitem" tabindex="-1" asp-area="Identity" asp-page="/Account/Login">Login</a>
+        </li>
+    </ul>
+</div>
 }
-</ul>
+

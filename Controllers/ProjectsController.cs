@@ -47,6 +47,7 @@ namespace JABugTracker.Controllers
             IEnumerable<Project> projects = await _context.Projects
                                                           .Where(p => p.Archived == false && p.CompanyId==companyId)
                                                           .Include(p=>p.Members)
+                                                          .Include(p=>p.ProjectPriority)
                                                           .Include(p=>p.Tickets)
                                                           .ToListAsync();         
             return View(projects);
@@ -185,6 +186,7 @@ namespace JABugTracker.Controllers
                 return RedirectToAction(nameof(Details), new { viewModel.Project!.Id });
 
             }
+
             ModelState.AddModelError("SelectedMembers", "No members were selected. Please select members to add to the project.");
             //if NOT, reset the form
             viewModel.Project = await _projectService.GetProjectByIdAsync(viewModel.Project!.Id, companyId);
