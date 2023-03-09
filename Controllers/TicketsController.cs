@@ -12,6 +12,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.CodeAnalysis;
 using JABugTracker.Extensions;
 using JABugTracker.Services.Interfaces;
+using JABugTracker.Models.ViewModels;
+using Microsoft.AspNetCore.Mvc.ViewFeatures.Buffers;
 
 namespace JABugTracker.Controllers
 {
@@ -21,12 +23,16 @@ namespace JABugTracker.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<BTUser> _userManager;
         private readonly ITicketService _ticketService;
+        private readonly IBTRoleService _roleService;
+        private readonly IBTCompanyService _companyService;
 
-        public TicketsController(ApplicationDbContext context, UserManager<BTUser> userManager, ITicketService ticketService)
+        public TicketsController(ApplicationDbContext context, UserManager<BTUser> userManager, ITicketService ticketService, IBTRoleService roleService, IBTCompanyService companyService)
         {
             _context = context;
             _userManager = userManager;
             _ticketService = ticketService;
+            _roleService = roleService;
+            _companyService = companyService;
         }
 
         // GET: Tickets---------------------------------------------------------------------------------
@@ -108,6 +114,57 @@ namespace JABugTracker.Controllers
 
             return View(ticket);
         }
+
+
+        // GET: Tickets / AssignDeveloper--------------------------------------------------------------------------------------------
+        [HttpGet]
+        public async Task<IActionResult> AssignDeveloper(int id)
+        {
+            Ticket? ticket = await _ticketService.GetTicketByIdAsync(id);
+            if (ticket == null)
+            {
+                return NotFound();
+            }
+
+            int companyId = User.Identity!.GetCompanyId();
+
+            // Get a list of developers
+            List<BTUser> developers = await _roleService.GetUsersInRoleAsync("Developer", companyId);
+            var devList = new SelectList(developers, "Id", "FullName");
+            AssignDeveloperViewModel viewModel = new()
+            {
+                TicketId = ticket.Id,
+                Developers = devList
+            };
+            return View(viewModel);
+        }
+
+        //POST : Tickets / AssignDeveloper---------------------------------------------------------------------------------------------
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AssignDeveloper(AssignDeveloperViewModel viewModel)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest();
+            }
+
+            var ticket = await _context.Tickets.FindAsync(viewModel.TicketId);
+
+            if (ticket == null)
+            {
+                return NotFound();
+            }
+
+            ticket.DeveloperUserId = viewModel.SelectedDeveloperId;
+            _context.Update(ticket);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Index));
+        }
+
+
+
 
         //POST: Tickets/AddTicketComment----------------------------------------------------------------
         [HttpPost]

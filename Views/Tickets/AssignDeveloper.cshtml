@@ -1,0 +1,16 @@
+﻿@model AssignDeveloperViewModel
+
+<h1>Assign Developer</h1>
+
+<form asp-action="AssignDeveloper" method="post">
+    <input type="hidden" asp-for="TicketId" />
+
+    <div class="form-group">
+        <label for="SelectedDeveloperId">Select a developer:</label>
+        <select class="form-control" id="SelectedDeveloperId" name="SelectedDeveloperId" asp-items="@Model.Developers">
+            <option value="">-- Select a developer --</option>
+        </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Assign</button>
+</form>
