@@ -4,6 +4,7 @@ using JABugTracker.Models;
 using JABugTracker.Services;
 using JABugTracker.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -29,6 +30,9 @@ builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<ITicketService, TicketService>();
 builder.Services.AddScoped<IBTRoleService, BTRoleService>();
 builder.Services.AddScoped<IBTCompanyService, BTCompanyService>();
+builder.Services.AddScoped<IEmailSender, EmailService>();
+
+builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
 
 
 builder.Services.AddMvc();
