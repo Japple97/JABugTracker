@@ -14,6 +14,9 @@ using JABugTracker.Extensions;
 using JABugTracker.Services.Interfaces;
 using JABugTracker.Models.ViewModels;
 using Microsoft.AspNetCore.Mvc.ViewFeatures.Buffers;
+using Org.BouncyCastle.Bcpg;
+using Microsoft.AspNetCore.Authentication;
+using JABugTracker.Models.Enums;
 
 namespace JABugTracker.Controllers
 {
@@ -25,14 +28,20 @@ namespace JABugTracker.Controllers
         private readonly ITicketService _ticketService;
         private readonly IBTRoleService _roleService;
         private readonly IBTCompanyService _companyService;
+        private readonly IBTTicketHistoryService _historyService;
+        private readonly IProjectService _projectService;
+        private readonly IBTNotificationService _notificationService;
 
-        public TicketsController(ApplicationDbContext context, UserManager<BTUser> userManager, ITicketService ticketService, IBTRoleService roleService, IBTCompanyService companyService)
+        public TicketsController(ApplicationDbContext context, UserManager<BTUser> userManager, ITicketService ticketService, IBTRoleService roleService, IBTCompanyService companyService, IBTTicketHistoryService historyService, IProjectService projectService, IBTNotificationService notificationService)
         {
             _context = context;
             _userManager = userManager;
             _ticketService = ticketService;
             _roleService = roleService;
             _companyService = companyService;
+            _historyService = historyService;
+            _projectService = projectService;
+            _notificationService = notificationService;
         }
 
         // GET: Tickets---------------------------------------------------------------------------------
@@ -142,12 +151,16 @@ namespace JABugTracker.Controllers
         //POST : Tickets / AssignDeveloper---------------------------------------------------------------------------------------------
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin, ProjectManager")]
         public async Task<IActionResult> AssignDeveloper(AssignDeveloperViewModel viewModel)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest();
             }
+            int companyId = User.Identity!.GetCompanyId();
+           
+            Ticket? oldTicket = await _ticketService.GetTicketAsNoTrackingAsync(viewModel.TicketId, companyId);
 
             var ticket = await _context.Tickets.FindAsync(viewModel.TicketId);
 
@@ -160,6 +173,30 @@ namespace JABugTracker.Controllers
             _context.Update(ticket);
             await _context.SaveChangesAsync();
 
+
+            //TODO: add history
+            string? userId = _userManager.GetUserId(User);
+
+            BTUser? btUser = await _userManager.GetUserAsync(User);
+            Notification? notification = new()
+            {
+                TicketId = ticket!.Id,
+                Title = "Developer Assigned",
+                Message = $"New Ticket: {ticket.Title} was created by {btUser?.FullName}",
+                Created = DataUtility.GetPostGresDate(DateTime.Now),
+                SenderId = userId,
+                RecipientId =ticket.DeveloperUserId,
+                NotificationTypeId = (await _context.NotificationTypes.FirstOrDefaultAsync(n => n.Name == nameof(BTNotificationTypes.Ticket)))!.Id
+            };
+
+
+                await _notificationService.AddNotificationAsync(notification);
+                await _notificationService.SendEmailNotificationAsync(notification, "New Ticket Added");
+
+
+
+
+
             return RedirectToAction(nameof(Index));
         }
 
@@ -169,31 +206,35 @@ namespace JABugTracker.Controllers
         //POST: Tickets/AddTicketComment----------------------------------------------------------------
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddTicketComment(int? ticketId, string? comment)
-        {
-            try
-            {
-                if (ticketId != null && !string.IsNullOrEmpty(comment))
-                {
-                    TicketComment commentNew = new TicketComment
-                    {
-                        TicketId = ticketId.Value,
-                        Comment = comment,
-                        UserId = _userManager.GetUserId(User),
-                        Created = DataUtility.GetPostGresDate(DateTime.UtcNow)
-                    };
-                    _context.TicketComments.Add(commentNew);
-                    await _context.SaveChangesAsync();
-                }
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-            
-            return RedirectToAction("Details", "Tickets", new { id = ticketId});
+        //public async Task<IActionResult> AddTicketComment([Bind("Id, TicketId, Comment")] TicketComment ticketComment)
+        //{
+        //    try
+        //    {
+        //        if (ticketId != null && !string.IsNullOrEmpty(comment))
+        //        {
+        //            TicketComment commentNew = new TicketComment
+        //            {
+        //                TicketId = ticketId.Value,
+        //                Comment = comment,
+        //                UserId = _userManager.GetUserId(User),
+        //                Created = DataUtility.GetPostGresDate(DateTime.UtcNow)
+        //            };
+        //            _context.TicketComments.Add(commentNew);
+        //            await _context.SaveChangesAsync();
+        //        }
+        //        //ADD history
+        //        await _historyService.AddHistoryAsync()
+        //    }
+        //    catch (Exception)
+        //    {
+        //        throw;
+        //    }
 
-        }
+        //    return RedirectToAction("Details", "Tickets", new { id = ticketId });
+
+        //}
+
+        //TODO: TICKET ATTACHMENT POST METHOD*----------------------
 
         // GET: Tickets/Create-------------------------------------------------------------------------------
         public IActionResult Create()
@@ -214,15 +255,56 @@ namespace JABugTracker.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Id,Title,Description,Created,Updated,Archived,ArchivedByProject,ProjectId,TicketTypeId,TicketStatusId,TicketPriorityId,DeveloperUserId,SubmitterUserId")] Ticket ticket)
         {
+            BTUser? btUser = await _userManager.GetUserAsync(User);
             if (ModelState.IsValid)
             {
+
+                string? userId = _userManager.GetUserId(User);
                 // Format Date
                 ticket.Created = DataUtility.GetPostGresDate(DateTime.UtcNow);
                 ticket.Updated = DataUtility.GetPostGresDate(DateTime.UtcNow);
+                ticket.SubmitterUserId = userId;
+                // ticket.TicketStatusId = (await _context.TicketStatuses.FirstOrDefaultAsync(s=>s.Name == nameof))
+
+
+
 
 
                 _context.Add(ticket);
                 await _context.SaveChangesAsync();
+
+                // Add Ticket History
+                int companyId = User.Identity!.GetCompanyId();
+                //change to GetTicketAsNoTrackingAsync in service
+                Ticket? newTicket = await _ticketService.GetTicketAsNoTrackingAsync(ticket.Id, companyId);
+
+                await _historyService.AddHistoryAsync(null, newTicket, userId);
+
+                //TODO: Notification
+                BTUser? projectManager = await _projectService.GetProjectManagerAsync(ticket.ProjectId);
+
+                Notification? notification = new()
+                {
+                    TicketId = ticket.Id,
+                    Title = "New Ticket Added",
+                    Message = $"New Ticket: {ticket.Title} was created by {btUser?.FullName}",
+                    Created = DataUtility.GetPostGresDate(DateTime.Now),
+                    SenderId = userId,
+                    RecipientId = projectManager?.Id,
+                    NotificationTypeId = (await _context.NotificationTypes.FirstOrDefaultAsync(n => n.Name == nameof(BTNotificationTypes.Ticket)))!.Id
+                };
+
+                if (projectManager != null)
+                {
+                    await _notificationService.AddNotificationAsync(notification);
+                    await _notificationService.SendEmailNotificationAsync(notification, "New Ticket Added");
+                }
+                else
+                {
+                    await _notificationService.AdminNotificationAsync(notification, companyId);
+                    await _notificationService.SendAdminEmailNotificationAsync(notification, "New Project Ticket Added", companyId);
+                }
+
                 return RedirectToAction(nameof(Index));
             }
             ViewData["DeveloperUserId"] = new SelectList(_context.Set<BTUser>(), "Id", "Id", ticket.DeveloperUserId);
@@ -270,10 +352,13 @@ namespace JABugTracker.Controllers
 
             if (ModelState.IsValid)
             {
+                int companyId = User.Identity!.GetCompanyId();
+                string? userId = _userManager.GetUserId(User);
+                Ticket? oldTicket = await _ticketService.GetTicketAsNoTrackingAsync(ticket.Id, companyId);
                 try
                 {
                     // Reformat Date
-                    ticket.Created = DataUtility.GetPostGresDate(DateTime.UtcNow);
+                    ticket.Created = DataUtility.GetPostGresDate(ticket.Created);
                     ticket.Updated = DataUtility.GetPostGresDate(DateTime.UtcNow);
 
                     _context.Update(ticket);
@@ -290,6 +375,39 @@ namespace JABugTracker.Controllers
                         throw;
                     }
                 }
+
+                //change to GetTicketAsNoTrackingAsync in service
+                Ticket? newTicket = await _ticketService.GetTicketAsNoTrackingAsync(ticket.Id, companyId);
+
+                await _historyService.AddHistoryAsync(oldTicket, newTicket, userId);
+
+                //TODO: Notification
+                BTUser? btUser = await _userManager.GetUserAsync(User);
+                BTUser? projectManager = await _projectService.GetProjectManagerAsync(ticket.ProjectId);
+
+                Notification? notification = new()
+                {
+                    TicketId = ticket.Id,
+                    Title = "New Ticket Added",
+                    Message = $"New Ticket: {ticket.Title} was created by {btUser?.FullName}",
+                    Created = DataUtility.GetPostGresDate(DateTime.Now),
+                    SenderId = userId,
+                    RecipientId = projectManager?.Id,
+                    NotificationTypeId = (await _context.NotificationTypes.FirstOrDefaultAsync(n => n.Name == nameof(BTNotificationTypes.Ticket)))!.Id
+                };
+
+                if (projectManager != null)
+                {
+                    await _notificationService.AddNotificationAsync(notification);
+                    await _notificationService.SendEmailNotificationAsync(notification, "New Ticket Added");
+                }
+                else
+                {
+                    await _notificationService.AdminNotificationAsync(notification, companyId);
+                    await _notificationService.SendAdminEmailNotificationAsync(notification, "New Project Ticket Added", companyId);
+                }
+
+
                 return RedirectToAction(nameof(Index));
             }
             ViewData["DeveloperUserId"] = new SelectList(_context.Set<BTUser>(), "Id", "Id", ticket.DeveloperUserId);
@@ -339,14 +457,14 @@ namespace JABugTracker.Controllers
             {
                 _context.Tickets.Remove(ticket);
             }
-            
+
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
         private bool TicketExists(int id)
         {
-          return (_context.Tickets?.Any(e => e.Id == id)).GetValueOrDefault();
+            return (_context.Tickets?.Any(e => e.Id == id)).GetValueOrDefault();
         }
     }
 }

@@ -25,12 +25,16 @@ builder.Services.AddIdentity<BTUser, IdentityRole>(options => options.SignIn.Req
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 //Custom Services
+builder.Services.AddScoped<IEmailSender, EmailService>();
+builder.Services.AddScoped<IBTRoleService, BTRoleService>();
 builder.Services.AddScoped<IBTFileService, BTFileService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<ITicketService, TicketService>();
-builder.Services.AddScoped<IBTRoleService, BTRoleService>();
 builder.Services.AddScoped<IBTCompanyService, BTCompanyService>();
-builder.Services.AddScoped<IEmailSender, EmailService>();
+builder.Services.AddScoped<IBTTicketHistoryService, BTTicketHistoryService>();
+builder.Services.AddScoped<IBTTicketCommentService, TicketCommentService>();
+builder.Services.AddScoped<IBTNotificationService, NotificationService>();
+builder.Services.AddScoped<IBTInviteService, InviteService>();
 
 builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
 

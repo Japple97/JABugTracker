@@ -12,8 +12,36 @@ namespace JABugTracker.Services
 		{
 			_context = context;
 		}
+        //TODO
+        public async Task<Ticket> GetTicketAsNoTrackingAsync(int? ticketId, int? companyId)
+        {
+            try
+            {
+                Ticket? ticket = await _context.Tickets
+                                                 .Include(t => t.Project)
+                                                    .ThenInclude(p => p!.Company)
+                                                .Include(t => t.Attachments)
+                                                .Include(t => t.Comments)
+                                                .Include(t => t.DeveloperUser)
+                                                .Include(t => t.History)
+                                                .Include(t => t.SubmitterUser)
+                                                .Include(t => t.TicketPriority)
+                                                .Include(t => t.TicketStatus)
+                                                .Include(t => t.TicketType)
+                                                .AsNoTracking()
+                                                .FirstOrDefaultAsync(t => t.Id == ticketId && t.Project!.CompanyId == companyId && t.Archived == false);
 
-		public async Task<Ticket> GetTicketByIdAsync(int ticketId)
+                return ticket!;
+
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+        }
+
+        public async Task<Ticket> GetTicketByIdAsync(int ticketId)
 		{
 			try
 			{
