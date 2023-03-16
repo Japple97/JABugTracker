@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Mvc.ViewFeatures.Buffers;
 using Org.BouncyCastle.Bcpg;
 using Microsoft.AspNetCore.Authentication;
 using JABugTracker.Models.Enums;
+using JABugTracker.Services;
 
 namespace JABugTracker.Controllers
 {
@@ -31,8 +32,10 @@ namespace JABugTracker.Controllers
         private readonly IBTTicketHistoryService _historyService;
         private readonly IProjectService _projectService;
         private readonly IBTNotificationService _notificationService;
+        private readonly IBTFileService _fileService;
+        private readonly IBTTicketCommentService _commentService;
 
-        public TicketsController(ApplicationDbContext context, UserManager<BTUser> userManager, ITicketService ticketService, IBTRoleService roleService, IBTCompanyService companyService, IBTTicketHistoryService historyService, IProjectService projectService, IBTNotificationService notificationService)
+        public TicketsController(ApplicationDbContext context, UserManager<BTUser> userManager, ITicketService ticketService, IBTRoleService roleService, IBTCompanyService companyService, IBTTicketHistoryService historyService, IProjectService projectService, IBTNotificationService notificationService, IBTFileService fileService, IBTTicketCommentService commentService)
         {
             _context = context;
             _userManager = userManager;
@@ -42,6 +45,8 @@ namespace JABugTracker.Controllers
             _historyService = historyService;
             _projectService = projectService;
             _notificationService = notificationService;
+            _fileService = fileService;
+            _commentService = commentService;
         }
 
         // GET: Tickets---------------------------------------------------------------------------------
@@ -127,23 +132,22 @@ namespace JABugTracker.Controllers
 
         // GET: Tickets / AssignDeveloper--------------------------------------------------------------------------------------------
         [HttpGet]
-        public async Task<IActionResult> AssignDeveloper(int id)
+        [Authorize(Roles = "Admin, Project Manager")]
+        public async Task<IActionResult> AssignDeveloper(int? id)
         {
-            Ticket? ticket = await _ticketService.GetTicketByIdAsync(id);
-            if (ticket == null)
+            if(id == null)
             {
                 return NotFound();
             }
-
             int companyId = User.Identity!.GetCompanyId();
 
-            // Get a list of developers
-            List<BTUser> developers = await _roleService.GetUsersInRoleAsync("Developer", companyId);
-            var devList = new SelectList(developers, "Id", "FullName");
+            IEnumerable<BTUser> developers = await _roleService.GetUsersInRoleAsync(nameof(BTRoles.Developer), companyId);
+            BTUser? currentDev = await _ticketService.GetCurrentDeveloperAsync(id);
             AssignDeveloperViewModel viewModel = new()
             {
-                TicketId = ticket.Id,
-                Developers = devList
+                Ticket = await _ticketService.GetTicketByIdAsync(id),
+                Developers = new SelectList(developers, "Id", "FullName", currentDev?.Id),
+                SelectedDeveloperId = currentDev?.Id
             };
             return View(viewModel);
         }
@@ -154,50 +158,54 @@ namespace JABugTracker.Controllers
         [Authorize(Roles = "Admin, ProjectManager")]
         public async Task<IActionResult> AssignDeveloper(AssignDeveloperViewModel viewModel)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest();
-            }
             int companyId = User.Identity!.GetCompanyId();
-           
-            Ticket? oldTicket = await _ticketService.GetTicketAsNoTrackingAsync(viewModel.TicketId, companyId);
-
-            var ticket = await _context.Tickets.FindAsync(viewModel.TicketId);
-
-            if (ticket == null)
-            {
-                return NotFound();
-            }
-
-            ticket.DeveloperUserId = viewModel.SelectedDeveloperId;
-            _context.Update(ticket);
-            await _context.SaveChangesAsync();
-
-
-            //TODO: add history
             string? userId = _userManager.GetUserId(User);
-
-            BTUser? btUser = await _userManager.GetUserAsync(User);
-            Notification? notification = new()
+            if (!string.IsNullOrEmpty(viewModel.SelectedDeveloperId))
             {
-                TicketId = ticket!.Id,
-                Title = "Developer Assigned",
-                Message = $"New Ticket: {ticket.Title} was created by {btUser?.FullName}",
-                Created = DataUtility.GetPostGresDate(DateTime.Now),
-                SenderId = userId,
-                RecipientId =ticket.DeveloperUserId,
-                NotificationTypeId = (await _context.NotificationTypes.FirstOrDefaultAsync(n => n.Name == nameof(BTNotificationTypes.Ticket)))!.Id
-            };
 
+                Ticket? oldTicket = await _ticketService.GetTicketAsNoTrackingAsync(viewModel.Ticket!.Id, companyId);
+
+
+                await _ticketService.AddDeveloperToTicketAsync(viewModel.Ticket?.Id, viewModel.SelectedDeveloperId);
+
+                Ticket? newTicket = await _ticketService.GetTicketAsNoTrackingAsync(viewModel.Ticket!.Id, companyId);
+                await _historyService.AddHistoryAsync(oldTicket, newTicket, userId!);
+
+                BTUser? btUser = await _userManager.FindByIdAsync(userId!);
+
+                //add history
+                await _historyService.AddHistoryAsync(null!, newTicket!, userId!);
+
+                //Create and add notification
+                Notification? notification = new()
+                {
+                    TicketId = viewModel.Ticket.Id,
+                    Title = "New Ticket Added",
+                    Message = $"Ticket : {viewModel.Ticket.Title} was assigned by {btUser?.FullName}",
+                    Created = DataUtility.GetPostGresDate(DateTime.Now),
+                    SenderId = userId,
+                    RecipientId = viewModel.SelectedDeveloperId,
+                    NotificationTypeId = (await _context.NotificationTypes.FirstOrDefaultAsync(n => n.Name == nameof(BTNotificationTypes.Ticket)))!.Id
+                };
 
                 await _notificationService.AddNotificationAsync(notification);
-                await _notificationService.SendEmailNotificationAsync(notification, "New Ticket Added");
+                await _notificationService.SendEmailNotificationAsync(notification, "New Developer Assigned");
+                //Success
+                return RedirectToAction("Details", new { id = viewModel.Ticket?.Id });
+            }
 
 
+            //If null, reset view and try again 
+            ModelState.AddModelError("DevloperId", "No Developer Chosen. Please Select a Developer");
 
+            IEnumerable<BTUser> developers = await _roleService.GetUsersInRoleAsync(nameof(BTRoles.Developer), companyId);
+            BTUser? currentDeveloper = await _ticketService.GetCurrentDeveloperAsync(viewModel.Ticket!.Id);
 
+            viewModel.Ticket = await _ticketService.GetTicketByIdAsync(viewModel.Ticket?.Id);
+            viewModel.Developers = new SelectList(developers, "Id", "FullName", currentDeveloper.Id);
+            viewModel.SelectedDeveloperId = currentDeveloper?.Id;
 
-            return RedirectToAction(nameof(Index));
+            return View(viewModel);
         }
 
 
@@ -206,35 +214,59 @@ namespace JABugTracker.Controllers
         //POST: Tickets/AddTicketComment----------------------------------------------------------------
         [HttpPost]
         [ValidateAntiForgeryToken]
-        //public async Task<IActionResult> AddTicketComment([Bind("Id, TicketId, Comment")] TicketComment ticketComment)
-        //{
-        //    try
-        //    {
-        //        if (ticketId != null && !string.IsNullOrEmpty(comment))
-        //        {
-        //            TicketComment commentNew = new TicketComment
-        //            {
-        //                TicketId = ticketId.Value,
-        //                Comment = comment,
-        //                UserId = _userManager.GetUserId(User),
-        //                Created = DataUtility.GetPostGresDate(DateTime.UtcNow)
-        //            };
-        //            _context.TicketComments.Add(commentNew);
-        //            await _context.SaveChangesAsync();
-        //        }
-        //        //ADD history
-        //        await _historyService.AddHistoryAsync()
-        //    }
-        //    catch (Exception)
-        //    {
-        //        throw;
-        //    }
+        public async Task<IActionResult> AddTicketComment(int id, string comment)
+        {
+            if (string.IsNullOrEmpty(comment))
+            {
+                ModelState.AddModelError("Comment", "Please enter a comment");
+                return RedirectToAction("Details", "Tickets", new { id = id });
+            }
 
-        //    return RedirectToAction("Details", "Tickets", new { id = ticketId });
+            TicketComment ticketComment = new()
+            {
+                TicketId = id,
+                Comment = comment,
+                UserId = _userManager.GetUserId(User),
+                Created = DataUtility.GetPostGresDate(DateTime.UtcNow)
+            };
 
-        //}
+            await _commentService.AddTicketCommentAsync(ticketComment);
+            await _historyService.AddHistoryAsync(id, nameof(TicketComment), ticketComment.UserId);
+            return RedirectToAction("Details", "Tickets", new { id = id });
+        }
 
-        //TODO: TICKET ATTACHMENT POST METHOD*----------------------
+        //POST: TICKET ATTACHMENT POST METHOD*----------------------
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddTicketAttachment([Bind("Id,Description,TicketId,FormFile")] TicketAttachment ticketAttachment)
+        {
+            //Instantiate confirmation / error message
+            string message;
+
+            //Check if a valid attachment(file) was selected
+            // Remove BTUserId FK to allow valid modelstate
+            ModelState.Remove("BTUserId");
+            if (ModelState.IsValid && ticketAttachment.FormFile != null)
+            {
+                ticketAttachment.FileData = await _fileService.ConvertFileToByteArrayAsync(ticketAttachment.FormFile);
+                ticketAttachment.FileType = ticketAttachment.FormFile.ContentType;
+                ticketAttachment.FileName = ticketAttachment.FormFile.FileName;
+                ticketAttachment.Created = DataUtility.GetPostGresDate(DateTime.UtcNow);
+                ticketAttachment.BTUserId = _userManager.GetUserId(User);
+
+                // add attachment
+                await _ticketService.AddTicketAttachmentAsync(ticketAttachment);
+                //add history
+                await _historyService.AddHistoryAsync(ticketAttachment.TicketId, nameof(TicketAttachment), ticketAttachment.BTUserId);
+                message = "Success";
+            }
+            else
+            {
+                message = "Error: Attachment Failed";
+            }
+
+            return RedirectToAction("Details", new { id = ticketAttachment.TicketId, message = message });
+        }
 
         // GET: Tickets/Create-------------------------------------------------------------------------------
         public IActionResult Create()
