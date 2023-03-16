@@ -5,6 +5,7 @@
 @using JABugTracker.Services.Interfaces
 @using JABugTracker.Services
 @inject IBTRoleService _roleService
+@inject IBTFileService _FileService
 @{
     BTUser? btUser = await UserManager.GetUserAsync(User);
 }
@@ -14,7 +15,7 @@
 {
         <a href="#" data-bs-toggle="dropdown">
             <figure class="profile-picture">
-                <img src="~/Template/HTML/img/!logged-user.jpg" alt="User Profile" class="rounded-circle" />
+                <img src="~/img/DefaultUserImage.jpg" alt="User Profile" class="rounded-circle" />
             </figure>
             <div class="profile-info">
                 <span class="name">@User.Identity?.Name</span>
@@ -26,7 +27,7 @@
             <ul class="list-unstyled mb-2">
                 <li class="divider"></li>
                 <li>
-                    <a role="menuitem" tabindex="-1" href="pages-user-profile.html"><i class="bx bx-user-circle"></i> My Profile</a>
+                    <a role="menuitem" tabindex="-1" asp-area="Identity" asp-page="/Account/Manage/Index"><i class="bx bx-user-circle"></i> My Profile</a>
                 </li>
                 <li>
                     <a role="menuitem" tabindex="-1" href="#" data-lock-screen="true"><i class="bx bx-lock"></i> Lock Screen</a>

@@ -4,9 +4,11 @@
 
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using JABugTracker.Models;
+using JABugTracker.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -17,13 +19,15 @@ namespace JABugTracker.Areas.Identity.Pages.Account.Manage
     {
         private readonly UserManager<BTUser> _userManager;
         private readonly SignInManager<BTUser> _signInManager;
+        private readonly IBTFileService _fileService;
 
         public IndexModel(
             UserManager<BTUser> userManager,
-            SignInManager<BTUser> signInManager)
+            SignInManager<BTUser> signInManager, IBTFileService fileService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
+            _fileService = fileService;
         }
 
         /// <summary>
@@ -52,6 +56,18 @@ namespace JABugTracker.Areas.Identity.Pages.Account.Manage
         /// </summary>
         public class InputModel
         {
+            public string FirstName { get; set; }
+            public string LastName { get; set; }
+
+            //Image Storing
+            public byte[] ImageFileData { get; set; }
+            public string ImageFileType { get; set; }
+            [NotMapped]
+            public IFormFile ImageFormFile { get; set; }
+
+
+
+
             /// <summary>
             ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
             ///     directly from your code. This API may change or be removed in future releases.
@@ -70,7 +86,10 @@ namespace JABugTracker.Areas.Identity.Pages.Account.Manage
 
             Input = new InputModel
             {
-                PhoneNumber = phoneNumber
+                PhoneNumber = phoneNumber,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                ImageFileData = user.ImageFileData
             };
         }
 
