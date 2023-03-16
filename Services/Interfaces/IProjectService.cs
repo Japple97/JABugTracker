@@ -6,8 +6,7 @@ namespace JABugTracker.Services.Interfaces
     {
         //public Task AddProjectAsync(Project project);
         //public Task ArchiveProjectAsync(Project project);
-        //public Task<List<Project>> GetAllProjectsByCompanyIdAsync(int companyId);
-        //public Task<List<Project>> GetArchivedProjectsByCompanyIdAsync(int companyId);
+
 
 
 
@@ -22,5 +21,11 @@ namespace JABugTracker.Services.Interfaces
 
         public Task RemoveProjectManagerAsync(int? projectId);
         public Task<bool> RemoveMemberFromProjectAsync(BTUser? member, int? projectId);
+
+        //Gets projects that are not archived
+        public Task<IEnumerable<Project>> GetProjectsAsync(int? companyId);
+
+        //Gets archived projects
+        //public Task<List<Project>> GetArchivedProjectsByCompanyIdAsync(int companyId);
     }
 }

@@ -153,7 +153,22 @@ namespace JABugTracker.Services
 			}
 		}
 
-		public async Task<bool> RemoveMemberFromProjectAsync(BTUser? member, int? projectId)
+        public async Task<IEnumerable<Project>> GetProjectsAsync(int? companyId)
+        {
+			try
+			{
+				IEnumerable<Project> projects = await _context.Projects.Where(p=>p.Archived == false && p.CompanyId == companyId).Include(p=>p.Members).Include(p=>p.Tickets).Include(p=>p.ProjectPriority).ToListAsync();
+				return projects;
+
+			}
+			catch (Exception)
+			{
+
+				throw;
+			}
+        }
+
+        public async Task<bool> RemoveMemberFromProjectAsync(BTUser? member, int? projectId)
 		{
 			try
 			{
