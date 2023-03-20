@@ -7,9 +7,11 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using JABugTracker.Data;
 using JABugTracker.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace JABugTracker.Controllers
 {
+    [Authorize]
     public class TicketHistoryController : Controller
     {
         private readonly ApplicationDbContext _context;
