@@ -230,6 +230,9 @@ namespace JABugTracker.Controllers
         [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
+            //Get companyId
+            int companyId = User.Identity!.GetCompanyId();
+
             ViewData["CompanyId"] = new SelectList(_context.Companies, "Id", "Name");
             ViewData["ProjectPriorityId"] = new SelectList(_context.ProjectPriorities, "Id", "Name");
             return View();
@@ -243,8 +246,12 @@ namespace JABugTracker.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([Bind("Id,Name,Description,Created,StartDate,EndDate,ImageFormFile,Archived,CompanyId,ProjectPriorityId")] Project project)
         {
+            //Get companyId
+            int companyId = User.Identity!.GetCompanyId();
             if (ModelState.IsValid)
             {
+                //Assign Company
+                project.CompanyId= companyId;
                 //Format Date
                 project.Created = DataUtility.GetPostGresDate(DateTime.UtcNow);
                 project.StartDate = DataUtility.GetPostGresDate(project.StartDate);
@@ -261,7 +268,7 @@ namespace JABugTracker.Controllers
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["CompanyId"] = new SelectList(_context.Companies, "Id", "Name", project.CompanyId);
+            ViewData["CompanyId"] = new SelectList(_context.Companies, "Id", "Name", companyId);
             ViewData["ProjectPriorityId"] = new SelectList(_context.ProjectPriorities, "Id", "Name", project.ProjectPriorityId);
             return View(project);
         }
@@ -304,11 +311,14 @@ namespace JABugTracker.Controllers
             {
                 return NotFound();
             }
-
+            //Get companyId
+            int companyId = User.Identity!.GetCompanyId();
             if (ModelState.IsValid)
             {
                 try
                 {
+                    //Assign Company
+                    project.CompanyId = companyId;
                     // Reformat Dates
                     project.Created = DateTime.SpecifyKind(project.Created, DateTimeKind.Utc);
                     project.StartDate = DataUtility.GetPostGresDate(project.StartDate);

@@ -24,7 +24,7 @@
             <a class="btn btn-default" href="@Url.Action("Edit", new { id = Model.Id })">
                 <i class="fa fa-edit"></i> Edit
             </a>
-            <a class="btn btn-default" href="@Url.Action("Delete", new { id = Model.Id })">
+            <a class="btn btn-danger" href="@Url.Action("Delete", new { id = Model.Id })">
                 <i class="fa fa-trash"></i> Delete
             </a>
             <a class="btn btn-default" href="@Url.Action("AssignPM", new { id = Model.Id })">
@@ -125,8 +125,8 @@
                                         <tr>
                                             <th>Title</th>
                                             <th>Description</th>
-                                            <th>Status</th>
-                                            <th>Assignee</th>
+                                            <th>Priority</th>
+                                            <th>Developer</th>
                                             <th>Created</th>
                                             <th>Actions</th>
                                         </tr>
@@ -137,14 +137,21 @@
                                             <tr>
                                                 <td>@ticket.Title</td>
                                                 <td>@ticket.Description</td>
-                                                <td>@ticket.TicketStatus</td>
+                                                <td>@ticket.TicketPriority</td>
                                                 <td>@(ticket.DeveloperUser?.FullName ?? "Unassigned")</td>
                                                 <td>@ticket.Created.ToShortDateString()</td>
-@*                                                <td>
-                                                    <a href="@Url.Action("Details", "Tickets", new { id = ticket.ID })" class="btn btn-xs green"><i class="fa fa-eye"></i> View</a>
-                                                    <a href="@Url.Action("Edit", "Tickets", new { id = ticket.ID })" class="btn btn-xs blue"><i class="fa fa-pencil"></i> Edit</a>
-                                                    <a href="@Url.Action("Delete", "Tickets", new { id = ticket.ID })" class="btn btn-xs red"><i class="fa fa-trash"></i> Delete</a>
-                                                </td>*@
+                                                <td>
+                                                    @if (User.IsInRole("Admin") || User.IsInRole("ProjectManager"))
+                                                    {
+                                                        <a href="@Url.Action("Details", "Tickets", new { id = ticket.Id })" class="btn btn-xs green"><i class="fa fa-eye"></i> View</a>
+                                                        <a href="@Url.Action("Edit", "Tickets", new { id = ticket.Id })" class="btn btn-xs blue"><i class="fa fa-pencil"></i> Edit</a>
+                                                        <a href="@Url.Action("Delete", "Tickets", new { id = ticket.Id })" class="btn btn-xs red"><i class="fa fa-trash"></i> Delete</a>
+                                                    }
+                                                    else
+                                                    {
+                                                        <a href="@Url.Action("Details", "Tickets", new { id = ticket.Id })" class="btn btn-xs green"><i class="fa fa-eye"></i> View</a>
+                                                    }
+                                                </td>
                                             </tr>
                                         }
                                     </tbody>
