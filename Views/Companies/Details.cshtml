@@ -4,39 +4,50 @@
     ViewData["Title"] = "Details";
 }
 
-<h1>Details</h1>
+<h1>@Model.Name</h1>
 
-<div>
-    <h4>Company</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Name)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Name)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Description)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Description)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ImageFileData)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ImageFileData)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ImageFileType)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ImageFileType)
-        </dd>
-    </dl>
-</div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
-    <a asp-action="Index">Back to List</a>
-</div>
+<h2>Projects</h2>
+<table class="table-bordered">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Project Manager</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Open Tickets</th>
+            <th>Members</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var project in Model.Projects)
+        {
+            <tr>
+                <td>@project.Name</td>
+                <td>@project.</td>
+                <td>@project.StartDate</td>
+                <td>@project.EndDate</td>
+                <td>@project.</td>
+                <td>@project.Members.Count</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<h2>Members</h2>
+<ul class="list">
+    @foreach (var member in Model.Members)
+    {
+        <li>@member.: @member.FullName</li>
+    }
+</ul>
+
+@if (User.IsInRole("Admin"))
+{
+    <h2>Pending Invites</h2>
+    <ul>
+        @foreach (var invite in Model.Invites)
+        {
+            <li>@invite.InviteeEmail : @invite.InviteeFirstName @invite.InviteeLastName</li>
+        }
+    </ul>
+}

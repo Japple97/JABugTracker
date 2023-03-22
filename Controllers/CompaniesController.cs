@@ -42,6 +42,7 @@ namespace JABugTracker.Controllers
 
         //GET: Companies/ManageUserRoles--------------------------------------------------------------------------------------------------
         [HttpGet]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> ManageUserRoles()
         {
             //1- Add an instance of the viewModel as a List (model)
@@ -73,6 +74,7 @@ namespace JABugTracker.Controllers
         //POST: Companies/ManageUserRoles-------------------------------------------------------
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> ManageUserRoles(ManageUserRolesViewModel viewModel)
         {
             //1- Get the company Id
@@ -105,8 +107,7 @@ namespace JABugTracker.Controllers
                 return NotFound();
             }
 
-            var company = await _context.Companies
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var company = await _companyService.GetCompanyInfoAsync(id);
             if (company == null)
             {
                 return NotFound();
@@ -116,6 +117,7 @@ namespace JABugTracker.Controllers
         }
 
         // GET: Companies/Create
+        [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
             return View();
@@ -126,6 +128,7 @@ namespace JABugTracker.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([Bind("Id,Name,Description,ImageFileData,ImageFileType")] Company company)
         {
             if (ModelState.IsValid)
@@ -138,6 +141,7 @@ namespace JABugTracker.Controllers
         }
 
         // GET: Companies/Edit/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null || _context.Companies == null)
@@ -158,6 +162,7 @@ namespace JABugTracker.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Description,ImageFileData,ImageFileType")] Company company)
         {
             if (id != company.Id)
@@ -189,6 +194,7 @@ namespace JABugTracker.Controllers
         }
 
         // GET: Companies/Delete/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null || _context.Companies == null)
@@ -209,6 +215,7 @@ namespace JABugTracker.Controllers
         // POST: Companies/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             if (_context.Companies == null)

@@ -53,6 +53,29 @@ namespace JABugTracker.Controllers
             return View(projects);
         }
 
+        //GET: Projects/UnassignedProjects
+        public async Task<IActionResult> UnassignedProjects()
+        {
+            int companyId = User.Identity!.GetCompanyId();
+            
+            IEnumerable<Project> unassigned = await _context.Projects.Where(p => p.Archived == false && p.CompanyId == companyId && !p.Members.Any()).Include(p => p.Members)
+                                                          .Include(p => p.ProjectPriority)
+                                                          .Include(p => p.Tickets).ToListAsync();
+            return View(unassigned);
+
+        }
+
+        //GET: Projects/ArchivedProjects
+        public async Task<IActionResult> ArchivedProjects()
+        {
+            int companyId = User.Identity!.GetCompanyId();
+            IEnumerable<Project> archived = await _context.Projects.Where(p => p.Archived == true && p.CompanyId == companyId)
+                                                              .Include(p => p.Members)
+                                                              .Include(p => p.ProjectPriority)
+                                                              .Include(p => p.Tickets).ToListAsync();
+            return View(archived);
+        }
+
         // GET: Projects/MyProjects---------------------------------------------------------------------------------------
         public async Task<IActionResult> MyProjects()
         {
