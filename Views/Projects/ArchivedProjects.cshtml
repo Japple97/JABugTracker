@@ -1,4 +1,7 @@
 ﻿@model IEnumerable<Project>
+@using JABugTracker.Services.Interfaces
+
+@inject IProjectService _ProjectService
 
 <h1>Archived Projects</h1>
 
@@ -24,7 +27,7 @@ else
             {
                         <tr>
                             <td>@project.Name</td>
-                            <td>@project.</td>
+                    <td>@((await _ProjectService.GetProjectManagerAsync(project.Id))?.FullName ?? "Unassigned")</td>
                             <td>@project.StartDate.ToShortDateString()</td>
                             <td>@project.EndDate.ToShortDateString()</td>
                             <td>@project.ProjectPriority.Name</td>
