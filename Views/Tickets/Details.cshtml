@@ -58,7 +58,7 @@
                 <div class="card-body" style="height:600px;overflow-y:auto;">
                     <hr>
                     <h6>Comments</h6>
-                    <form method="post" action="@Url.Action("AddTicketComment","Ticket", new { ticketId = Model.Id })">
+                    <form method="post" action="@Url.Action("AddTicketComment","Tickets", new { ticketId = Model.Id })">
                         <div class="mb-3">
                             <label for="commentInput" class="form-label">Add Comment</label>
                             <textarea class="form-control" id="commentInput" name="Comment"></textarea>
@@ -172,8 +172,8 @@
                 {
                     <div class="card-body">
                         <ul class="list-unstyled">
-                            <li><a href="@Url.Action("Edit", "Ticket", new { id = Model.Id })" class="btn btn-primary">Edit</a></li>
-                            <li><a href="@Url.Action("Delete", "Ticket", new { id = Model.Id })" class="btn btn-danger">Delete</a></li>
+                            <li><a href="@Url.Action("Edit", "Tickets", new { id = Model.Id })" class="btn btn-primary">Edit</a></li>
+                            <li><a href="@Url.Action("Delete", "Tickets", new { id = Model.Id })" class="btn btn-danger">Delete</a></li>
                         </ul>
                     </div>
                 }
