@@ -147,6 +147,7 @@
                                                         <a href="@Url.Action("Details", "Tickets", new { id = ticket.Id })" class="btn btn-xs green"><i class="fa fa-eye"></i> View</a>
                                                         <a href="@Url.Action("Edit", "Tickets", new { id = ticket.Id })" class="btn btn-xs blue"><i class="fa fa-pencil"></i> Edit</a>
                                                         <a href="@Url.Action("Delete", "Tickets", new { id = ticket.Id })" class="btn btn-xs red"><i class="fa fa-trash"></i> Delete</a>
+                                                         <a href="@Url.Action("AssignDeveloper", "Tickets", new { id = ticket.Id })" class="btn btn-xs yellow"><i class="fa fa-user"></i> Assign Developer</a>
                                                     }
                                                     else
                                                     {
