@@ -50,4 +50,9 @@
             <li>@invite.InviteeEmail : @invite.InviteeFirstName @invite.InviteeLastName</li>
         }
     </ul>
+    <br />
+    <span>----------------------</span>
+    <br />
+    <a href="@Url.Action("ManageUserRoles", "Companies", new { id = Model.Id })"
+   class="btn btn-primary btn-sm mt-2">Manage User Roles</a>
 }

@@ -1,4 +1,5 @@
 ﻿@model JABugTracker.Models.Project
+@using JABugTracker.Models.Enums;
 @using JABugTracker.Services.Interfaces
 
 @inject IProjectService _ProjectService
@@ -137,7 +138,7 @@
                                             <tr>
                                                 <td>@ticket.Title</td>
                                                 <td>@ticket.Description</td>
-                                                <td>@ticket.TicketPriority</td>
+                                                <td>@Enum.GetName(typeof(BTTicketPriorities),ticket.TicketPriorityId)</td>
                                                 <td>@(ticket.DeveloperUser?.FullName ?? "Unassigned")</td>
                                                 <td>@ticket.Created.ToShortDateString()</td>
                                                 <td>

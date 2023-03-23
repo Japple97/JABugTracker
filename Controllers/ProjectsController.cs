@@ -119,6 +119,10 @@ namespace JABugTracker.Controllers
             int companyId = User.Identity!.GetCompanyId();
 
             IEnumerable<BTUser> projectManagers = await _btRoleService.GetUsersInRoleAsync(nameof(BTRoles.ProjectManager), companyId);
+
+
+
+
             BTUser? currentPM = await _projectService.GetProjectManagerAsync(id);
             AssignPMViewModel viewModel = new()
             {
@@ -146,8 +150,8 @@ namespace JABugTracker.Controllers
 
             ModelState.AddModelError("PMId", "No Project Manager chosen. Please select a PM.");
             int companyId = User.Identity!.GetCompanyId();
-
             IEnumerable<BTUser> projectManagers = await _btRoleService.GetUsersInRoleAsync(nameof(BTRoles.ProjectManager), companyId);
+
             BTUser? currentPM = await _projectService.GetProjectManagerAsync(viewModel.Project?.Id);
             viewModel.Project = await _projectService.GetProjectByIdAsync(viewModel.Project?.Id, companyId);
             viewModel.PMList = new SelectList(projectManagers, "Id", "FullName", currentPM?.Id);

@@ -2,6 +2,7 @@
 @using JABugTracker.Services;
 @using JABugTracker.Services.Interfaces;
 @using Microsoft.AspNetCore.Identity;
+@using JABugTracker.Models.Enums;
 
 @inject IBTFileService _fileService;
 @inject IBTTicketHistoryService _historyService;
@@ -27,7 +28,7 @@
                                     <span class="visually-hidden">@Model.PercentCompleted%</span>
                                 </div>
                             </div>*@
-                            <p class="card-text"><small class="text-muted">Project: @Model.Project</small></p>
+                            <p class="card-text"><small class="text-muted">Project: @Model.Title</small></p>
                         </div>
                     </div>
                 </div>
@@ -35,10 +36,13 @@
                     <div class="card bg-secondary">
                         <div class="card-body">
                             <ul class="list-unstyled">
-                                <li><strong>Date Entered:</strong> <span>@Model.Created.ToString("MMMM dd, yyyy")</span></li>                              
-                                <li><strong>Type:</strong> <span>@Model.TicketType</span></li>
-                                <li><strong>Priority:</strong> <span>@Model.TicketPriority</span></li>
-                                <li><strong>Status:</strong> <span>@Model.TicketStatus</span></li>
+                                <li><strong>Date Entered:</strong> <span>@Model.Created.ToString("MMMM dd, yyyy")</span></li>   
+                                
+                                <!--TODO: TicketType Service?-->
+                                <li><strong>Priority:</strong> <span>@Enum.GetName(typeof(BTTicketPriorities), Model.TicketPriorityId)</span></li>
+                                <!--TODO: TicketPriority Service?-->
+                                <li><strong>Type:</strong> <span>@Enum.GetName(typeof(BTTicketTypes), Model.TicketTypeId)</span></li>
+                                <li><strong>Status:</strong> <span>@Enum.GetName(typeof(BTTicketStatuses), Model.TicketStatusId)</span></li>
                             </ul>
                         </div>
                     </div>

@@ -76,7 +76,6 @@ namespace JABugTracker.Services
 			}
 			catch (Exception)
 			{
-
 				throw;
 			}
 		}

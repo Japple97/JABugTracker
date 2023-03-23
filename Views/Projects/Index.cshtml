@@ -10,11 +10,17 @@
     ViewData["Title"] = "All Projects";
 }
 
+
 <h1>All Projects</h1>
 
 <div class="row">
     @foreach (var item in Model)
     {
+        
+        
+    var projectManager = await _ProjectService.GetProjectManagerAsync(item.Id);
+
+
         <div class="col-md-4 mb-3">
             <div class="card">
                 <img src="@_BTFileService.ConvertByteArrayToFile(item.ImageFileData!,item.ImageFileType!,(int)DefaultImage.ProjectImage)" class="card-img-top" alt="Project Image">
@@ -22,6 +28,7 @@
                     <h5 class="card-title">@item.Name</h5>
                     <p class="card-text">@item.Description</p>
                     <ul class="list-group list-group-flush">
+                        <li class="list-group-item"><strong>Project Manager:</strong> @(projectManager != null ? projectManager.FullName : "No Project Manager Assigned") </li>
                         <li class="list-group-item"><strong>Start Date:</strong> @item.StartDate.ToShortDateString()</li>
                         <li class="list-group-item"><strong>End Date:</strong> @item.EndDate.ToShortDateString()</li>
                         <li class="list-group-item"><strong>Priority:</strong> @item.ProjectPriority.Name</li>
