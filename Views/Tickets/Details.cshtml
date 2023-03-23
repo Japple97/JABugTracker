@@ -58,10 +58,12 @@
                 <div class="card-body" style="height:600px;overflow-y:auto;">
                     <hr>
                     <h6>Comments</h6>
-                    <form method="post" action="@Url.Action("AddTicketComment","Tickets", new { Id = Model.Id })">
+                    <form method="post" asp-action="AddTicketComment" asp-route-id="@Model.Id" class="mt-4">
+                        @Html.AntiForgeryToken()
+
                         <div class="mb-3">
                             <label for="commentInput" class="form-label">Add Comment</label>
-                            <textarea class="form-control" id="commentInput" name="Comment"></textarea>
+                            <textarea class="form-control" id="commentInput" name="comment"></textarea>
                         </div>
                         <button type="submit" class="btn btn-primary">Submit</button>
                     </form>

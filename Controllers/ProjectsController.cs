@@ -277,7 +277,7 @@ namespace JABugTracker.Controllers
             return View(project);
         }
 
-        // GET: Projects/Edit/5----------------------------------------------------------------------------------------------------------------------------------
+        // GET: Projects/Edit/----------------------------------------------------------------------------------------------------------------------------------
         [Authorize(Roles = "Admin, ProjectManager")]
         public async Task<IActionResult> Edit(int? id)
         {
@@ -303,7 +303,7 @@ namespace JABugTracker.Controllers
             return View(project);
         }
 
-        // POST: Projects/Edit/5---------------------------------------------------------------------
+        // POST: Projects/Edit/---------------------------------------------------------------------
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
@@ -357,18 +357,18 @@ namespace JABugTracker.Controllers
             return View(project);
         }
 
-        // GET: Projects/Delete/5--------------------------------------------------------------------------------------------------------------
-        public async Task<IActionResult> Delete(int? id)
+        // GET: Projects/Archive/--------------------------------------------------------------------------------------------------------------
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Archive(int? id)
         {
+            //Get companyId
+            int companyId = User.Identity!.GetCompanyId();
             if (id == null || _context.Projects == null)
             {
                 return NotFound();
             }
 
-            var project = await _context.Projects
-                .Include(p => p.Company)
-                .Include(p => p.ProjectPriority)
-                .FirstOrDefaultAsync(m => m.Id == id);
+            Project project = await _projectService.GetProjectByIdAsync(id, companyId);
             if (project == null)
             {
                 return NotFound();
@@ -377,25 +377,73 @@ namespace JABugTracker.Controllers
             return View(project);
         }
 
-        // POST: Projects/Delete/5---------------------------------------------------------------
-        [HttpPost, ActionName("Delete")]
+        // POST: Projects/Archive/---------------------------------------------------------------
+        [HttpPost, ActionName("Archive")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ArchiveConfirmed(int id)
         {
+            //Get companyId
+            int companyId = User.Identity!.GetCompanyId();
             if (_context.Projects == null)
             {
                 return Problem("Entity set 'ApplicationDbContext.Projects'  is null.");
             }
-            var project = await _context.Projects.FindAsync(id);
+            Project project = await _projectService.GetProjectByIdAsync(id, companyId);
+
             if (project != null)
             {
-                project.Archived = true;
-                _context.Projects.Remove(project);
+                project.Archived = true;              
             }
             
             await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(ArchivedProjects));
+        }
+
+        //GET: Projects/Restore---------------------------
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Restore(int? id)
+        {
+            //Get companyId
+            int companyId = User.Identity!.GetCompanyId();
+            if (id == null || _context.Projects == null)
+            {
+                return NotFound();
+            }
+            Project project = await _projectService.GetProjectByIdAsync(id, companyId);
+            if (project == null)
+            {
+                return NotFound();
+            }
+            return View(project);
+        }
+        //POST: Projects/Restore-----------------------------------------
+        [Authorize(Roles = "Admin")]
+        [HttpPost, ActionName("Restore")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RestoreConfirmed(int id)
+        {
+            //Get companyId
+            int companyId = User.Identity!.GetCompanyId();
+            if (_context.Projects == null)
+            {
+                return Problem("Entity set 'ApplicationDbContext.Projects'  is null.");
+            }
+            Project project = await _projectService.GetProjectByIdAsync(id, companyId);
+            if (project != null)
+            {
+                project.Archived = false;
+            }
+            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
+
+
+
+
+
+
+
         // --------------------------------------
         private bool ProjectExists(int id)
         {

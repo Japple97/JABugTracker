@@ -11,7 +11,8 @@
 }
 else
 {
-        <table>
+    <div class="card">
+        <table class="table-bordered">
             <thead>
                 <tr>
                     <th>Name</th>
@@ -20,6 +21,7 @@ else
                     <th>End Date</th>
                     <th>Priority</th>
                     <th>Ticket Count</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -27,13 +29,19 @@ else
             {
                         <tr>
                             <td>@project.Name</td>
-                    <td>@((await _ProjectService.GetProjectManagerAsync(project.Id))?.FullName ?? "Unassigned")</td>
+                            <td>@((await _ProjectService.GetProjectManagerAsync(project.Id))?.FullName ?? "Unassigned")</td>
                             <td>@project.StartDate.ToShortDateString()</td>
                             <td>@project.EndDate.ToShortDateString()</td>
                             <td>@project.ProjectPriority.Name</td>
                             <td>@project.Tickets.Count()</td>
+                            <td>
+                            <a class="btn btn-primary btn-sm" asp-action="Details" asp-controller="Projects" asp-route-id="@project.Id">Details</a>
+                             <a class="btn btn-success btn-sm" asp-action="Restore" asp-controller="Projects" asp-route-id="@project.Id">Restore</a>                       
+                            </td>
+
                         </tr>
             }
             </tbody>
         </table>
+        </div>
 }
